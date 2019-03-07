@@ -21,7 +21,7 @@ api = API(auth1, wait_on_rate_limit=True)
 
 print(api.me().name)
 # Open/Create a file to append data
-csvFile = open('tweets.csv', 'a', newline='')
+csvFile = open('tweets_id.csv', 'a', newline='')
 # Use csv Writer
 csvWriter = csv.writer(csvFile)
 
@@ -38,9 +38,10 @@ class TwitterStreamListener(StreamListener):
                 tweet = ext['full_text']
             else:
                 tweet = all_data['text']
+            tweet_id = all_data['id']
             created_at = all_data['created_at']
-            print(created_at, tweet)
-            csvWriter.writerow([created_at, tweet.encode("utf-8")])
+            print(tweet_id, created_at, tweet)
+            csvWriter.writerow([tweet_id, created_at, tweet.encode("utf-8")])
 
     def on_error(self, status):
         print(status)
