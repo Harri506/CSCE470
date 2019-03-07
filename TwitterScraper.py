@@ -4,11 +4,16 @@ from tweepy import API
 from tweepy.streaming import StreamListener
 import json
 import csv
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
 '''OAUTH Authentication '''
-consumer_key="wSicyi8GZRImxcHFEFAuZOlWM"
-consumer_secret="0tjCcMfGCn6xCkxHl33PLjsVA2hL0GRFrbzK9LYyGeY0f7dUGT"
-access_token="1098467931640528896-Uq90bCOijkbnl8JMu5MABP9U4I1ABi"
-access_token_secret="ufvKtmVenU7xhWMlgnebRD2rEQIJlhLCOyIbhVF9D4N1z"
+consumer_key = config['twitter']['API']
+consumer_secret = config['twitter']['APISecret']
+access_token = config['twitter']['AccessToken']
+access_token_secret = config['twitter']['AccessTokenSecret']
 
 auth1 = OAuthHandler(consumer_key, consumer_secret)
 auth1.set_access_token(access_token, access_token_secret)
