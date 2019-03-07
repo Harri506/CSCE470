@@ -1,17 +1,18 @@
-import sys
-import tweepy
+from tweepy import Stream
+from tweepy import OAuthHandler
+from tweepy import API
+from tweepy.streaming import StreamListener
+import json
 import csv
-import time
-
 '''OAUTH Authentication '''
 consumer_key="wSicyi8GZRImxcHFEFAuZOlWM"
 consumer_secret="0tjCcMfGCn6xCkxHl33PLjsVA2hL0GRFrbzK9LYyGeY0f7dUGT"
 access_token="1098467931640528896-Uq90bCOijkbnl8JMu5MABP9U4I1ABi"
 access_token_secret="ufvKtmVenU7xhWMlgnebRD2rEQIJlhLCOyIbhVF9D4N1z"
 
-auth1 = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth1 = OAuthHandler(consumer_key, consumer_secret)
 auth1.set_access_token(access_token, access_token_secret)
-api = tweepy.API(auth1, wait_on_rate_limit=True)
+api = API(auth1, wait_on_rate_limit=True)
 
 print(api.me().name)
 # Open/Create a file to append data
@@ -20,53 +21,29 @@ csvFile = open('tweets.csv', 'a', newline='')
 csvWriter = csv.writer(csvFile)
 
 
-class StreamListenerTwitter(tweepy.StreamListener):
-    def on_status(self, status):
-        try:
-            content = status.extended_tweet["full_text"].encode('utf-8')
-            tw_time = status.created_at
-            if not ('RT @'.encode('utf-8') in content):  # Exclude re-tweets
-                print(tw_time, content)
-                csvWriter.writerow([tw_time, content])
-        except AttributeError:
-            content = status.text.encode('utf-8')
-            tw_time = status.created_at
-            csvWriter.writerow([tw_time, content])
+# set up stream listener
+class TwitterStreamListener(StreamListener):
 
-    def on_error(self, status_code):
-        print('Error: ' + repr(status_code))
-        return True  # False to stop
+    def on_data(self, data):
+        all_data = json.loads(data)
+        # Collect timestamp and text, filter retweets
+        if ('retweeted_status' not in all_data) and ('text' in all_data):
+            if 'extended_tweet' in all_data:  # Handle tweets >140 chars
+                ext = all_data['extended_tweet']
+                tweet = ext['full_text']
+            else:
+                tweet = all_data['text']
+            created_at = all_data['created_at']
+            print(created_at, tweet)
+            csvWriter.writerow([created_at, tweet.encode("utf-8")])
 
-    def on_delete(self, status_id, user_id):
-        """Called when a delete notice arrives for a status"""
-        print("Delete notice for %s. %s" % (status_id, user_id))
-        return
-
-    def on_limit(self, track):
-        """Called when a limitation notice arrives"""
-        print("!!! Limitation notice received: %s" % str(track))
-        return
-
-    def on_timeout(self):
-        print('Timeout...')
-        time.sleep(10)
-        return True
+    def on_error(self, status):
+        print(status)
 
 
-def main():
-    track = ['democrat', 'republican', 'trump', 'president', 'potus', 'congress', 'supreme court', 'scotus',
-             'candidate', 'nomination', 'nominee', 'legislat', 'politic']
-    streamTube = tweepy.Stream(auth=auth1, listener=StreamListenerTwitter(), timeout=300)
+track = ['democrat', 'republican', 'trump', 'president', 'potus', 'congress', 'supreme court', 'scotus',
+         'candidate', 'nomination', 'nominee', 'legislat', 'politic']
 
-    print("Streaming started...")
-
-    try:
-        streamTube.filter(track=track, languages=["en"])
-        csvFile.close()
-    except Exception as e:
-        print("Stream error:", e)
-        streamTube.disconnect()
-
-
-if __name__ == '__main__':
-    main()
+# create stream and filter on a terms listed above
+twitterStream = Stream(auth1, TwitterStreamListener())
+twitterStream.filter(track=track, languages=["en"], stall_warnings=True)
